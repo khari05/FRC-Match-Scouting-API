@@ -66,18 +66,18 @@ app.get("/scout/:teamNumber/:matchid", function (req, response) {
 app.post("/scout/:teamNumber/:matchid", function (req, response) {
   const matchid = parseInt(req.params.matchid)
   const teamNumber = parseInt(req.params.teamNumber)
-  const data = req.body
+  const data = req.body.data
   pool
     .connect()
     .then(async client => {
       try {
         const result = await client.query("SELECT COUNT(*) FROM team_match_stat WHERE matchid = $1 AND team_number = $2", [matchid, teamNumber])
-        if (result.rows[0].count === 0) {
-          await client.query("INSERT INTO team_match_stat (team_number, matchid, data) VALUES ($1, $2, $3)", teamNumber, matchid, data) // need to INSERT a row
-        } if (result.rows[0].count === 1 ) {
+        if (result.rows[0].count === "0") {
+          await client.query("INSERT INTO team_match_stat (team_number, matchid, data) VALUES ($1, $2, $3)", [teamNumber, matchid, data]) // need to INSERT a row
+        } else if (result.rows[0].count === "1" ) {
           await client.query("") // need to UPDATE a row
         } else {
-          console.error("count is ${result.rows[0].count}")
+          console.error(`count is ${result.rows[0].count}`)
         }
           response.json("action executed")
       } finally {
