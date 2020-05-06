@@ -75,7 +75,7 @@ app.post("/scout/:teamNumber/:matchid", function (req, response) {
         if (result.rows[0].count === "0") {
           await client.query("INSERT INTO team_match_stat (team_number, matchid, data) VALUES ($1, $2, $3)", [teamNumber, matchid, data]) // need to INSERT a row
         } else if (result.rows[0].count === "1" ) {
-          await client.query("") // need to UPDATE a row
+          await client.query("UPDATE team_match_stat SET data=$3 WHERE team_number=$1 AND matchid=$2", [teamNumber, matchid, data]) // need to UPDATE a row
         } else {
           console.error(`count is ${result.rows[0].count}`)
         }
