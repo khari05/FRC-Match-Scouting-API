@@ -36,24 +36,7 @@ test("should output red team number and blue team number in the right order", ()
 
     const matchList = convertMatches(testMatchList, 10)
 
-    expect(matchList).toStrictEqual([{
-            "eventid":10,
-            "blue1":1,
-            "blue2":2,
-            "blue3":3,
-            "red1":4,
-            "red2":5,
-            "red3":6,
-            "match_number":8,
-        },
-        {
-            "eventid":10,
-            "blue1":6,
-            "blue2":5,
-            "blue3":4,
-            "red1":3,
-            "red2":2,
-            "red3":1,
-            "match_number":9,
-        }])
+    expect(matchList).toStrictEqual([
+        [10,1,2,3,4,5,6,8,],
+        [10,6,5,4,3,2,1,9,]])
 })

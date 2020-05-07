@@ -66,7 +66,7 @@ app.get("/matches/:eventid", function (req, response) {
     .then(async client => {
       try {
         const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventid])
-        response.json(result.rows)
+        response.json(result.rows.sort((a, b) => a.match_number-b.match_number))
       } finally {
         client.release()
       }
@@ -114,20 +114,28 @@ app.post("/scout/:teamNumber/:matchid", function (req, response) {
     .catch(e => console.error(e.stack))
 })
 
-app.put("/pullmatches/:eventkey", async function (req, response) {
+app.put("/pullmatches/:eventkey", function (req, response) {
   const eventKey = req.params.eventkey
-  const client = await pool.connect()
-  try {
-    const matches = await instance.get(`/event/${eventKey}/matches/simple`)
-    const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventid])
-    if (result.rowCount === 0) {
-      const matchList = convertMatches(matches, result.rows[0])
-    } else {
-      console.error(`error, eventKey ${eventKey} already has matches`)
-    }
-  } catch {
-    e => console.error(e.stack)
-  } finally {
-    client.release()
-  }
+  pool
+    .connect()
+    .then(async client => {
+      try {
+        const matches = (await instance.get(`/event/${eventKey}/matches/simple`)).data
+        const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        if (result.rowCount === 0) {
+          const matchList = convertMatches(matches, result.rows[0])
+          console.table(matchList)
+          for (i in matchList) {
+            await client.query("INSERT INTO match (eventid, blue1, blue2, blue3, red1, red2, red3, match_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", matchList[i])
+          }
+          response.json("action executed")
+        } else {
+          console.error(`error, eventKey ${eventKey} already has matches`)
+          response.json(`error, eventKey ${eventKey} already has matches`)
+        }
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
 })
