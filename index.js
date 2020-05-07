@@ -2,8 +2,16 @@ const { Pool } = require("pg")
 const axios = require("axios").default
 const express = require("express")
 const cors = require("cors")
+const { convertMatches } = require("./util")
 
 const TBAKey = process.env.TBAKEY
+const instance = axios.create({
+  baseURL: "https://thebluealliance.com/api/v3",
+  timeout: 10000,
+  headers: {
+    "X-TBA-Auth-Key": TBAKey,
+  }
+})
 
 const app = express()
 const pool = new Pool({
@@ -40,7 +48,7 @@ app.post("/addevents", function (req, response) {
     .then(async client => {
       try {
         const result = await client.query("SELECT COUNT(*) FROM event WHERE blue_alliance_id = $1", [blueAllianceId])
-        if (result.rows[0].count = "0") {
+        if (result.rows[0].count === "0") {
           await client.query("INSERT INTO event (name, blue_alliance_id) VALUES ($1, $2)", [eventName, blueAllianceId])
         }
         response.json("")
@@ -104,4 +112,22 @@ app.post("/scout/:teamNumber/:matchid", function (req, response) {
       }
     })
     .catch(e => console.error(e.stack))
+})
+
+app.put("/pullmatches/:eventkey", async function (req, response) {
+  const eventKey = req.params.eventkey
+  const client = await pool.connect()
+  try {
+    const matches = await instance.get(`/event/${eventKey}/matches/simple`)
+    const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventid])
+    if (result.rowCount === 0) {
+      const matchList = convertMatches(matches, result.rows[0])
+    } else {
+      console.error(`error, eventKey ${eventKey} already has matches`)
+    }
+  } catch {
+    e => console.error(e.stack)
+  } finally {
+    client.release()
+  }
 })
