@@ -124,7 +124,6 @@ app.put("/pullmatches/:eventkey", function (req, response) {
         const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
         if (result.rowCount === 0) {
           const matchList = convertMatches(matches, result.rows[0])
-          console.table(matchList)
           for (i in matchList) {
             await client.query("INSERT INTO match (eventid, blue1, blue2, blue3, red1, red2, red3, match_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", matchList[i])
           }
