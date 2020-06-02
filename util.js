@@ -1,4 +1,4 @@
-exports.convertMatches = (matches, eventId) => {
+function convertMatches(matches, eventId) {
     let matchList = []
     for (i in matches) {
       if (matches[i].comp_level === "qm") {
@@ -16,3 +16,17 @@ exports.convertMatches = (matches, eventId) => {
     }
     return matchList
 }
+
+function convertTeams(teams, eventId) {
+  let teamList = []
+  for (i in teams) {
+    teamList.push([
+      eventId,
+      parseInt(teams[i].team_number),
+      teams[i].nickname
+    ])
+  }
+  return teamList
+}
+
+module.exports = { convertMatches, convertTeams }

@@ -1,8 +1,9 @@
+const fs = require("fs")
 const { Pool } = require("pg")
 const axios = require("axios").default
 const express = require("express")
 const cors = require("cors")
-const { convertMatches } = require("./util")
+const { convertMatches, convertTeams} = require("./util")
 
 const TBAKey = process.env.TBAKEY
 const instance = axios.create({
@@ -17,6 +18,9 @@ const app = express()
 const pool = new Pool({
   connectionString: process.env.CONNECTIONSTRING,
   max: 1,
+  ssl: {
+    rejectUnauthorized: false
+  }
 })
 
 app.use(express.json(), cors(), express.urlencoded({ extended: true }))
@@ -26,7 +30,7 @@ const server = app.listen(process.env.PORT || 3000, function () {
   console.log("App now running on port", port)
 })
 
-app.get("/events", function (req, response) {
+app.get("/events", (req, response) => {
   pool
     .connect()
     .then(async client => {
@@ -40,7 +44,7 @@ app.get("/events", function (req, response) {
     .catch(e => console.error(e.stack))
 })
 
-app.post("/addevents", function (req, response) {
+app.post("/addevents", (req, response) => {
   const blueAllianceId = req.body.blue_alliance_id
   const eventName = req.body.event_name
   pool
@@ -56,7 +60,7 @@ app.post("/addevents", function (req, response) {
         client.release()
       }
     })
-    .catch(e => console.log(e.stack))
+    .catch(e => console.error(e.stack))
 })
 
 app.get("/matches/:eventid", function (req, response) {
@@ -74,7 +78,22 @@ app.get("/matches/:eventid", function (req, response) {
     .catch(e => console.error(e.stack))
 })
 
-app.get("/scout/:teamNumber/:matchid", function (req, response) {
+app.get("/teams/:eventKey", (req, res) => {
+  const eventKey = req.params.eventKey
+  pool
+    .connect()
+    .then(async client => {
+      try {
+        const teams = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        res.json(teams.rows)
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
+})
+
+app.get("/scout/:teamNumber/:matchid", (req, response) => {
   const matchid = parseInt(req.params.matchid)
   const teamNumber = parseInt(req.params.teamNumber)
   pool
@@ -90,7 +109,7 @@ app.get("/scout/:teamNumber/:matchid", function (req, response) {
     .catch(e => console.error(e.stack))
 })
 
-app.post("/scout/:teamNumber/:matchid", function (req, response) {
+app.post("/scout/:teamNumber/:matchid", (req, response) => {
   const matchid = parseInt(req.params.matchid)
   const teamNumber = parseInt(req.params.teamNumber)
   const data = req.body.data
@@ -114,16 +133,37 @@ app.post("/scout/:teamNumber/:matchid", function (req, response) {
     .catch(e => console.error(e.stack))
 })
 
-app.put("/pullmatches/:eventkey", function (req, response) {
-  const eventKey = req.params.eventkey
+app.get("/team/:teamNumber/:eventKey", (req, res) => {
+  const eventKey = req.params.eventKey
+  const teamNumber = req.params.teamNumber
+  pool
+    .connect()
+    .then( async client => {
+      try {
+        const team = await client.query("SELECT * FROM team WHERE eventid = $1 AND team_number = $2", [eventKey, teamNumber])
+        res.json(team.rows[0])
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
+})
+
+app.post("/team/:teamNumber/:eventKey", (req, res) => {
+  
+})
+
+app.put("/pullmatches/:eventKey", (req, response) => {
+  const eventKey = req.params.eventKey
   pool
     .connect()
     .then(async client => {
       try {
         const matches = (await instance.get(`/event/${eventKey}/matches/simple`)).data
         const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        const eventId = (await client.query("SELECT * FROM event WHERE blue_alliance_id = $1", [eventKey])).rows[0].id
         if (result.rowCount === 0) {
-          const matchList = convertMatches(matches, result.rows[0])
+          const matchList = convertMatches(matches, eventId)
           for (i in matchList) {
             await client.query("INSERT INTO match (eventid, blue1, blue2, blue3, red1, red2, red3, match_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", matchList[i])
           }
@@ -132,6 +172,51 @@ app.put("/pullmatches/:eventkey", function (req, response) {
           console.error(`error, eventKey ${eventKey} already has matches`)
           response.json(`error, eventKey ${eventKey} already has matches`)
         }
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
+})
+
+app.put("/pullteams/:eventKey", (req, res) => {
+  const eventKey = req.params.eventKey
+  pool
+    .connect()
+    .then(async client => {
+      try {
+        const teams = (await instance.get(`/event/${eventKey}/teams/simple`)).data
+        const result = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        const eventId = (await client.query("SELECT * FROM event WHERE blue_alliance_id = $1", [eventKey])).rows[0].id
+        if (result.rowCount === 0) {
+          const teamList = convertTeams(teams, eventId)
+          for (i in teamList) {
+            await client.query("INSERT INTO team (eventid, team_number, team_name) VALUES ($1, $2, $3)", teamList[i])
+          }
+          res.json("action executed")
+        } else {
+          console.error(`error, eventKey ${eventKey} already has teams`)
+          res.json(`error, eventKey ${eventKey} already has teams`)
+        }
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
+})
+
+app.put("/updateteams/:eventKey", (req, res) => {
+  const eventKey = req.params.eventKey
+  pool
+    .connect()
+    .then(async client => {
+      try {
+        const matches = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        const teams = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
+        // const teamList
+        // for (i in teamList) {
+        //   await client.query("INSERT INTO team (team_number, team_name, data) VALUES ($1, $2, $3)", teamList[i])
+        // }
       } finally {
         client.release()
       }
