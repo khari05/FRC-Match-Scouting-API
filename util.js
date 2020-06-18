@@ -23,7 +23,7 @@ function convertTeams(teams, eventId) {
     teamList.push([
       eventId,
       parseInt(teams[i].team_number),
-      teams[i].nickname
+      teams[i].nickname.substring(0,24)
     ])
   }
   return teamList

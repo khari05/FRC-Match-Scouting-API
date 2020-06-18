@@ -36,7 +36,7 @@ app.get("/events", (req, response) => {
     .then(async client => {
       try {
         const result = await client.query("SELECT * FROM event")
-        response.json(result.rows)
+        response.status(200).json(result.rows)
       } finally {
         client.release()
       }
@@ -54,8 +54,8 @@ app.post("/addevents", (req, response) => {
         const result = await client.query("SELECT COUNT(*) FROM event WHERE blue_alliance_id = $1", [blueAllianceId])
         if (result.rows[0].count === "0") {
           await client.query("INSERT INTO event (name, blue_alliance_id) VALUES ($1, $2)", [eventName, blueAllianceId])
+          response.status(201).json("action executed")
         }
-        response.json("")
       } finally {
         client.release()
       }
@@ -70,7 +70,7 @@ app.get("/matches/:eventid", function (req, response) {
     .then(async client => {
       try {
         const result = await client.query("SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1", [eventid])
-        response.json(result.rows.sort((a, b) => a.match_number-b.match_number))
+        response.status(200).json(result.rows.sort((a, b) => a.match_number-b.match_number))
       } finally {
         client.release()
       }
@@ -85,7 +85,7 @@ app.get("/teams/:eventKey", (req, res) => {
     .then(async client => {
       try {
         const teams = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
-        res.json(teams.rows)
+        res.status(200).json(teams.rows)
       } finally {
         client.release()
       }
@@ -101,7 +101,7 @@ app.get("/scout/:teamNumber/:matchid", (req, response) => {
     .then(async client => {
       try {
         const result = await client.query("SELECT * FROM team_match_stat WHERE matchid = $1 AND team_number = $2", [matchid, teamNumber])
-        response.json(result.rows[0])
+        response.status(200).json(result.rows[0])
       } finally {
         client.release()
       }
@@ -120,12 +120,14 @@ app.post("/scout/:teamNumber/:matchid", (req, response) => {
         const result = await client.query("SELECT COUNT(*) FROM team_match_stat WHERE matchid = $1 AND team_number = $2", [matchid, teamNumber])
         if (result.rows[0].count === "0") {
           await client.query("INSERT INTO team_match_stat (team_number, matchid, data) VALUES ($1, $2, $3)", [teamNumber, matchid, data]) // need to INSERT a row
+          response.status(201).json("action executed")
         } else if (result.rows[0].count === "1" ) {
           await client.query("UPDATE team_match_stat SET data=$3 WHERE team_number = $1 AND matchid = $2", [teamNumber, matchid, data]) // need to UPDATE a row
+          response.status(200).json("action executed")
         } else {
           console.error(`count is ${result.rows[0].count}`)
+          res.status(406).json(`error, count is ${result.rows[0].count}`)
         }
-          response.json("action executed")
       } finally {
         client.release()
       }
@@ -138,10 +140,10 @@ app.get("/team/:teamNumber/:eventKey", (req, res) => {
   const teamNumber = req.params.teamNumber
   pool
     .connect()
-    .then( async client => {
+    .then(async client => {
       try {
-        const team = await client.query("SELECT * FROM team WHERE eventid = $1 AND team_number = $2", [eventKey, teamNumber])
-        res.json(team.rows[0])
+        const team = await client.query("SELECT * FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1 AND team.team_number = $2", [eventKey, teamNumber])
+        res.status(200).json(team.rows[0])
       } finally {
         client.release()
       }
@@ -150,7 +152,28 @@ app.get("/team/:teamNumber/:eventKey", (req, res) => {
 })
 
 app.post("/team/:teamNumber/:eventKey", (req, res) => {
-  
+  const eventKey = req.params.eventKey
+  const teamNumber = req.params.teamNumber
+  const data = req.body.data
+  pool
+    .connect()
+    .then(async client => {
+      try {
+        const team = await client.query("SELECT * FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1 AND team.team_number = $2", [eventKey, teamNumber])
+        const eventid = team.rows[0].eventid
+        if (team.rowCount === 0) {
+          res.status(404).json("error, not found")
+        } else if (team.rowCount === 1) {
+          await client.query("UPDATE team SET data=$3 WHERE event.blue_alliance_id=$1 AND team.team_number=$2", (eventid, teamNumber, data))
+        } else {
+          console.error(`count is ${team.rows[0].count}`)
+          res.status(406).json(`error, count is ${team.rows[0].count}`)
+        }
+      } finally {
+        client.release()
+      }
+    })
+    .catch(e => console.error(e.stack))
 })
 
 app.put("/pullmatches/:eventKey", (req, response) => {
