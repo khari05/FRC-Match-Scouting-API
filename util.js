@@ -29,4 +29,8 @@ function convertTeams(teams, eventId) {
   return teamList
 }
 
-module.exports = { convertMatches, convertTeams }
+function findAverage(arr) {
+  return arr.reduce((a, b) => a + b) / arr.length
+}
+
+module.exports = { convertMatches, convertTeams, findAverage }
