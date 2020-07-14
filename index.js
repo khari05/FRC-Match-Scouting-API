@@ -2,7 +2,7 @@ const { Pool } = require("pg")
 const axios = require("axios").default
 const express = require("express")
 const cors = require("cors")
-const { convertMatches, convertTeams, findAverage} = require("./util")
+const { convertMatches, convertTeams, updateTeams} = require("./util")
 
 const TBAKey = process.env.TBAKEY
 const instance = axios.create({
@@ -233,54 +233,11 @@ app.put("/updateteams/:eventKey", (req, res) => {
     .connect()
     .then(async client => {
       try {
-        const stats = await client.query("SELECT team_match_stat.* FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1", [eventKey])
+        const stats = await client.query("SELECT * FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1", [eventKey])
         const teams = await client.query("SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1", [eventKey])
         const scored = await instance.get(`/event/${eventKey}/matches/simple`)
 
-        let allTeamData = [];
-
-        for (i in teams.rows) {
-          const teamNumber = teams.rows[i].team_number
-
-          let lowScored = []
-          let outerScored = []
-          let innerScored = []
-          let hanging = []
-          let penalties = []
-
-          for (j in stats.rows) {
-            if (stats.rows[j].team_number === teamNumber) {
-              lowScored.push(stats.rows[j].data.lowScored)
-              outerScored.push(stats.rows[j].data.outerScored)
-              innerScored.push(stats.rows[j].data.innerScored)
-
-              hanging.push(stats.rows[j].data.hanging)
-              penalties.push(stats.rows[j].data.amountOfPenalties)
-            }
-          }
-
-          const avgLow = findAverage(lowScored)
-          const avgOuter = findAverage(outerScored)
-          const avgInner = findAverage(innerScored)
-          const avgHang = findAverage(hanging)
-          const avgPen = findAverage(penalties)
-
-          allTeamData.push({
-            "avgLow":avgLow,
-            "avgOuter":avgOuter,
-            "avgInner":avgInner,
-
-            "lowScored":lowScored,
-            "outerScored":outerScored,
-            "innerScored":innerScored,
-
-            "avgHang":avgHang,
-            "avgPen":avgPen,
-
-            "hanging":hanging,
-            "penalties":penalties,
-          })
-        }
+        let allTeamData = updateTeams(teams, stats)
       } finally {
         client.release()
       }
