@@ -2,6 +2,8 @@ const { Pool } = require("pg")
 const axios = require("axios").default
 const express = require("express")
 const cors = require("cors")
+const path = require("path")
+const { readFile } = require("fs").promises
 const { convertMatches, convertTeams, updateTeams} = require("./util")
 
 const TBAKey = process.env.TBAKEY
@@ -27,6 +29,13 @@ app.use(express.json(), cors(), express.urlencoded({ extended: true }))
 const server = app.listen(process.env.PORT || 3000, function () {
   const port = server.address().port
   console.log("App now running on port", port)
+})
+
+app.get("/", async (req, res) => {
+  res.send(
+    await readFile(path.resolve(__dirname, "./index.html"), "utf8")
+    .catch(e => console.error(e.stack))
+  )
 })
 
 app.get("/events", (req, response) => {
