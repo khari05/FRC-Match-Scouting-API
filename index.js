@@ -4,7 +4,7 @@ const express = require("express")
 const cors = require("cors")
 const path = require("path")
 const { readFile } = require("fs").promises
-const { convertMatches, convertTeams, updateTeams} = require("./util")
+const { convertMatches, convertTeams, updateTeams } = require("./util")
 
 const TBAKey = process.env.TBAKEY
 const instance = axios.create({
