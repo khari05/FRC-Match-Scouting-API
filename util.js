@@ -109,7 +109,7 @@ function updateTeams(teams, stats) {
 }
 
 function findAverage(arr) {
-  return arr.length !== 0 ? (arr.reduce((a, b) => a.data + b.data) / arr.length) : null
+  return (arr.length !== 0) ? arr.reduce((a, b) => a + b.data, 0) : 0
 }
 
 module.exports = { convertMatches, convertTeams, updateTeams }

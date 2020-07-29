@@ -26,7 +26,7 @@ const pool = new Pool({
 
 app.use(express.json(), cors(), express.urlencoded({ extended: true }))
 
-const server = app.listen(process.env.PORT || 3000, function () {
+const server = app.listen(process.env.PORT || 3000, () => {
   const port = server.address().port
   console.log("App now running on port", port)
 })
@@ -71,7 +71,7 @@ app.post("/addevents", (req, response) => {
     .catch(e => console.error(e.stack))
 })
 
-app.get("/matches/:eventid", function (req, response) {
+app.get("/matches/:eventid", (req, response) => {
   const eventid = req.params.eventid
   pool
     .connect()
@@ -247,6 +247,7 @@ app.put("/updateteams/:eventKey", (req, res) => {
         const scored = await instance.get(`/event/${eventKey}/matches/simple`)
 
         let allTeamData = updateTeams(teams, stats)
+        console.log("yes")
       } finally {
         client.release()
       }
