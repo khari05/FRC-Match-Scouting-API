@@ -1,7 +1,7 @@
-function convertMatches(matches, eventId) {
-  let matchList = []
-  for (i in matches) {
-    if (matches[i].comp_level === "qm") {
+function convertMatches (matches, eventId) {
+  const matchList = []
+  for (const i in matches) {
+    if (matches[i].comp_level === 'qm') {
       matchList.push([
         eventId,
         parseInt(matches[i].alliances.blue.team_keys[0].substring(3)),
@@ -17,9 +17,9 @@ function convertMatches(matches, eventId) {
   return matchList
 }
 
-function convertTeams(teams, eventId) {
-  let teamList = []
-  for (i in teams) {
+function convertTeams (teams, eventId) {
+  const teamList = []
+  for (const i in teams) {
     teamList.push([
       eventId,
       parseInt(teams[i].team_number),
@@ -29,50 +29,50 @@ function convertTeams(teams, eventId) {
   return teamList
 }
 
-function updateTeams(teams, stats) {
-  let allTeamData = [];
-  for (i in teams.rows) {
+function updateTeams (teams, stats) {
+  const allTeamData = []
+  for (const i in teams.rows) {
     const teamNumber = teams.rows[i].team_number
 
-    let lowScored = []
-    let outerScored = []
-    let innerScored = []
-    let totalScored = []
-    let totalAttempted = []
-    let hanging = []
-    let penalties = []
+    const lowScored = []
+    const outerScored = []
+    const innerScored = []
+    const totalScored = []
+    const totalAttempted = []
+    const hanging = []
+    const penalties = []
 
-    for (j in stats.rows) {
+    for (const j in stats.rows) {
       if (stats.rows[j].team_number === teamNumber) {
         lowScored.push({
-          "data":stats.rows[j].data.lowScored,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.lowScored,
+          matchNumber: stats.rows[j].match_number
         })
         outerScored.push({
-          "data": stats.rows[j].data.outerScored,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.outerScored,
+          matchNumber: stats.rows[j].match_number
         })
         innerScored.push({
-          "data": stats.rows[j].data.innerScored,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.innerScored,
+          matchNumber: stats.rows[j].match_number
         })
 
         totalScored.push({
-          "data": stats.rows[j].data.totalScored,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.totalScored,
+          matchNumber: stats.rows[j].match_number
         })
         totalAttempted.push({
-          "data": stats.rows[j].data.totalAttempted,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.totalAttempted,
+          matchNumber: stats.rows[j].match_number
         })
 
         hanging.push({
-          "data": stats.rows[j].data.hanging,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.hanging,
+          matchNumber: stats.rows[j].match_number
         })
         penalties.push({
-          "data": stats.rows[j].data.amountOfPenalties,
-          "matchNumber": stats.rows[j].match_number
+          data: stats.rows[j].data.amountOfPenalties,
+          matchNumber: stats.rows[j].match_number
         })
       }
     }
@@ -86,30 +86,30 @@ function updateTeams(teams, stats) {
     const avgPen = findAverage(penalties)
 
     allTeamData.push({
-      "avgLow": avgLow,
-      "avgOuter": avgOuter,
-      "avgInner": avgInner,
-      "avgTotal": avgTotal,
-      "avgAttempted": avgAttempted,
+      avgLow: avgLow,
+      avgOuter: avgOuter,
+      avgInner: avgInner,
+      avgTotal: avgTotal,
+      avgAttempted: avgAttempted,
 
-      "lowScored": lowScored,
-      "outerScored": outerScored,
-      "innerScored": innerScored,
-      "totalScored": totalScored,
-      "totalAttempted": totalAttempted,
+      lowScored: lowScored,
+      outerScored: outerScored,
+      innerScored: innerScored,
+      totalScored: totalScored,
+      totalAttempted: totalAttempted,
 
-      "avgHang": avgHang,
-      "avgPen": avgPen,
+      avgHang: avgHang,
+      avgPen: avgPen,
 
-      "hanging": hanging,
-      "penalties": penalties,
+      hanging: hanging,
+      penalties: penalties
     })
   }
   return allTeamData
 }
 
-function findAverage(arr) {
-  return (arr.length !== 0) ? arr.reduce((a, b) => a + b.data, 0)/arr.length : 0
+function findAverage (arr) {
+  return (arr.length !== 0) ? arr.reduce((a, b) => a + b.data, 0) / arr.length : 0
 }
 
 module.exports = { convertMatches, convertTeams, updateTeams, findAverage }
