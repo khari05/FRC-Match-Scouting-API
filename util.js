@@ -1,4 +1,4 @@
-function convertMatches (matches, eventId) {
+const convertMatches = (matches, eventId) => {
   const matchList = []
   for (const i in matches) {
     if (matches[i].comp_level === 'qm') {
@@ -17,7 +17,7 @@ function convertMatches (matches, eventId) {
   return matchList
 }
 
-function convertTeams (teams, eventId) {
+const convertTeams = (teams, eventId) => {
   const teamList = []
   for (const i in teams) {
     teamList.push([
@@ -29,7 +29,66 @@ function convertTeams (teams, eventId) {
   return teamList
 }
 
-function updateTeams (teams, stats) {
+const calculateElo = (teams, matchResults) => {
+  const BETTER_SCORE = 20
+  const SAME_SCORE = 30
+  const WORSE_SCORE = 40
+  const finalTeamList = []
+  for (const i in teams.rows) {
+    finalTeamList.push({
+      teamNumber: teams.rows[i].team_number,
+      score: 0
+    })
+  }
+  for (const i in matchResults) {
+    if (matchResults[i].comp_level === 'qm' && matchResults[i].winning_alliance !== null) {
+      let blueTeamElo = 0
+      let redTeamElo = 0
+      let blueEloChange
+      let redEloChange
+      for (let j = 0; j < 3; j++) {
+        blueTeamElo += finalTeamList.find(o => o.teamNumber === parseInt(matchResults[i].alliances.blue.team_keys[j].substring(3))).score
+        redTeamElo += finalTeamList.find(o => o.teamNumber === parseInt(matchResults[i].alliances.red.team_keys[j].substring(3))).score
+      }
+      blueTeamElo /= 3
+      redTeamElo /= 3
+      if (matchResults[i].winning_alliance === 'blue') {
+        if (blueTeamElo + 10 > redTeamElo || blueTeamElo - 10 > redTeamElo) {
+          redEloChange = -SAME_SCORE
+          blueEloChange = SAME_SCORE
+        } else {
+          if (blueTeamElo > redTeamElo) {
+            redEloChange = -BETTER_SCORE
+            blueEloChange = BETTER_SCORE
+          } else {
+            redEloChange = -WORSE_SCORE
+            blueEloChange = WORSE_SCORE
+          }
+        }
+      } else {
+        if (redTeamElo + 10 > blueTeamElo || redTeamElo - 10 > blueTeamElo) {
+          blueEloChange = -SAME_SCORE
+          redEloChange = SAME_SCORE
+        } else {
+          if (redTeamElo > blueTeamElo) {
+            blueEloChange = -BETTER_SCORE
+            redEloChange = BETTER_SCORE
+          } else {
+            blueEloChange = -WORSE_SCORE
+            redEloChange = WORSE_SCORE
+          }
+        }
+      }
+      for (let j = 0; j < 3; j++) {
+        finalTeamList.find(o => o.teamNumber === parseInt(matchResults[i].alliances.blue.team_keys[j].substring(3))).score += blueEloChange
+        finalTeamList.find(o => o.teamNumber === parseInt(matchResults[i].alliances.red.team_keys[j].substring(3))).score += redEloChange
+      }
+    }
+  }
+  return finalTeamList
+}
+
+const updateTeams = (teams, stats) => {
   const allTeamData = []
   for (const i in teams.rows) {
     const teamNumber = teams.rows[i].team_number
@@ -86,30 +145,33 @@ function updateTeams (teams, stats) {
     const avgPen = findAverage(penalties)
 
     allTeamData.push({
-      avgLow: avgLow,
-      avgOuter: avgOuter,
-      avgInner: avgInner,
-      avgTotal: avgTotal,
-      avgAttempted: avgAttempted,
+      teamNumber: teamNumber,
+      data: {
+        avgLow: avgLow,
+        avgOuter: avgOuter,
+        avgInner: avgInner,
+        avgTotal: avgTotal,
+        avgAttempted: avgAttempted,
 
-      lowScored: lowScored,
-      outerScored: outerScored,
-      innerScored: innerScored,
-      totalScored: totalScored,
-      totalAttempted: totalAttempted,
+        lowScored: lowScored,
+        outerScored: outerScored,
+        innerScored: innerScored,
+        totalScored: totalScored,
+        totalAttempted: totalAttempted,
 
-      avgHang: avgHang,
-      avgPen: avgPen,
+        avgHang: avgHang,
+        avgPen: avgPen,
 
-      hanging: hanging,
-      penalties: penalties
+        hanging: hanging,
+        penalties: penalties
+      }
     })
   }
   return allTeamData
 }
 
-function findAverage (arr) {
+const findAverage = (arr) => {
   return (arr.length !== 0) ? arr.reduce((a, b) => a + b.data, 0) / arr.length : 0
 }
 
-module.exports = { convertMatches, convertTeams, updateTeams, findAverage }
+module.exports = { convertMatches, convertTeams, updateTeams, findAverage, calculateElo }

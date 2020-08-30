@@ -4,7 +4,10 @@ const express = require('express')
 const cors = require('cors')
 const path = require('path')
 const { readFile } = require('fs').promises
-const { convertMatches, convertTeams/*, updateTeams */ } = require('./util')
+const {
+  convertMatches, convertTeams, updateTeams,
+  calculateElo
+} = require('./util')
 
 const TBAKey = process.env.TBAKEY
 const instance = axios.create({
@@ -17,7 +20,7 @@ const instance = axios.create({
 
 const app = express()
 const pool = new Pool({
-  connectionString: process.env.CONNECTIONSTRING,
+  connectionString: process.env.DATABASE_URL,
   max: 1,
   ssl: {
     rejectUnauthorized: false
@@ -25,6 +28,21 @@ const pool = new Pool({
 })
 
 app.use(express.json(), cors(), express.urlencoded({ extended: true }))
+
+pool
+  .connect()
+  .then(async client => {
+    try {
+      const result = await client.query('SELECT * FROM information_schema.tables WHERE table_schema=$1', ['public'])
+      if (result.rows.length !== 4) {
+        client.query('CREATE TABLE public.event (id int4 NOT NULL GENERATED ALWAYS AS IDENTITY, name varchar(50) NULL, blue_alliance_id varchar(10) NULL ) CREATE TABLE public.match ( id int4 NOT NULL GENERATED ALWAYS AS IDENTITY, eventid int4 NULL, blue1 int4 NULL, blue2 int4 NULL, blue3 int4 NULL, red1 int4 NULL, red2 int4 NULL, red3 int4 NULL ) CREATE table public.team_match_stat ( id int4 NOT NULL GENERATED ALWAYS AS IDENTITY, matchid int4 NULL, team_number int4 NULL, data jsonb NULL ) CREATE table public.team ( id int4 NOT NULL GENERATED ALWAYS AS IDENTITY, eventid int4 NULL, team_number int4 NULL, team_name varchar(50) NULL, data jsonb NULL )')
+      }
+      console.log('PostgreSQL server is configured correctly.')
+    } finally {
+      client.release()
+    }
+  })
+  .catch(e => console.error(e.stack))
 
 const server = app.listen(process.env.PORT || 3000, () => {
   const port = server.address().port
@@ -242,17 +260,21 @@ app.put('/pullteams/:eventKey', (req, res) => {
 })
 
 app.put('/updateteams/:eventKey', (req, res) => {
-  // const eventKey = req.params.eventKey
+  const eventKey = req.params.eventKey
   pool
     .connect()
     .then(async client => {
       try {
-        // const stats = await client.query('SELECT * FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1', [eventKey])
-        // const teams = await client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
-        // const scored = await instance.get(`/event/${eventKey}/matches/simple`)
+        const stats = await client.query('SELECT * FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1', [eventKey])
+        const teams = await client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
+        const matches = await instance.get(`/event/${eventKey}/matches/simple`)
 
-        // let allTeamData = updateTeams(teams, stats)
-        // console.log('yes')
+        const allTeamData = updateTeams(teams, stats)
+        const teamElos = calculateElo(teams, matches.data)
+        // const teamOprDpr
+        allTeamData.map((d, i, a) => { d[i].data.elo = teamElos.find(o => d[i].teamNumber === o.teamNumber).score })
+        // now I need to figure out how to update everything in the DB
+        res.status(201).json('action executed')
       } finally {
         client.release()
       }
