@@ -213,10 +213,12 @@ app.put('/pullmatches/:eventKey', (req, response) => {
     .connect()
     .then(async client => {
       try {
-        const matches = (await instance.get(`/event/${eventKey}/matches/simple`)).data
-        const result = await client.query('SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
-        const eventId = (await client.query('SELECT * FROM event WHERE blue_alliance_id = $1', [eventKey])).rows[0].id
-        if (result.rowCount === 0) {
+        const matches = instance.get(`/event/${eventKey}/matches/simple`).data
+        const matchesInDb = client.query('SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
+        const eventId = client.query('SELECT * FROM event WHERE blue_alliance_id = $1', [eventKey]).rows[0].id
+        await Promise.all([matches, matches, eventId])
+
+        if (matchesInDb.rowCount === 0) {
           const matchList = convertMatches(matches, eventId)
           for (const i in matchList) {
             await client.query('INSERT INTO match (eventid, blue1, blue2, blue3, red1, red2, red3, match_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', matchList[i])
@@ -239,10 +241,12 @@ app.put('/pullteams/:eventKey', (req, res) => {
     .connect()
     .then(async client => {
       try {
-        const teams = (await instance.get(`/event/${eventKey}/teams/simple`)).data
-        const result = await client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
-        const eventId = (await client.query('SELECT * FROM event WHERE blue_alliance_id = $1', [eventKey])).rows[0].id
-        if (result.rowCount === 0) {
+        const teams = instance.get(`/event/${eventKey}/teams/simple`).data
+        const teamsInDb = client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
+        const eventId = client.query('SELECT * FROM event WHERE blue_alliance_id = $1', [eventKey]).rows[0].id
+        await Promise.all([teams, teamsInDb, eventId])
+
+        if (teamsInDb.rowCount === 0) {
           const teamList = convertTeams(teams, eventId)
           for (const i in teamList) {
             await client.query('INSERT INTO team (eventid, team_number, team_name) VALUES ($1, $2, $3)', teamList[i])
@@ -265,13 +269,14 @@ app.put('/updateteams/:eventKey', (req, res) => {
     .connect()
     .then(async client => {
       try {
-        const stats = await client.query('SELECT * FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1', [eventKey])
-        const teams = await client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
-        const matches = await instance.get(`/event/${eventKey}/matches/simple`)
+        const stats = client.query('SELECT * FROM match INNER JOIN event ON match.eventid = event.id INNER JOIN team_match_stat ON match.id = team_match_stat.matchid WHERE event.blue_alliance_id = $1', [eventKey])
+        const teams = client.query('SELECT team.* FROM team INNER JOIN event ON team.eventid = event.id WHERE event.blue_alliance_id = $1', [eventKey])
+        const matches = instance.get(`/event/${eventKey}/matches/simple`)
+        await Promise.all([stats, teams, matches])
 
         const allTeamData = updateTeams(teams, stats)
         const teamElos = calculateElo(teams, matches.data)
-        // const teamOprDpr
+        // const teamOpr
         allTeamData.map((d, i, a) => { d[i].data.elo = teamElos.find(o => d[i].teamNumber === o.teamNumber).score })
         // now I need to figure out how to update everything in the DB
         res.status(201).json('action executed')
