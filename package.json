@@ -5,22 +5,22 @@
   "main": "index.js",
   "scripts": {
     "start": "node index",
-    "test": "standard && jest"
+    "test": "jest",
+    "lint": "standard"
   },
-  "author": "MrCoderBoy345",
-  "license": "ISC",
+  "author": "khari05",
+  "license": "GPL-3.0",
   "dependencies": {
     "axios": "^0.19.2",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "fs": "0.0.1-security",
-    "ml-matrix": "^6.5.0",
+    "ml-matrix": "^6.5.3",
     "path": "^0.12.7",
-    "pg": "^8.0.0"
+    "pg": "^8.5.1"
   },
   "devDependencies": {
-    "standard": "^14.3.4",
-    "@types/jest": "^26.0.10",
-    "jest": "^26.0.1"
+    "@types/jest": "^26.0.19",
+    "jest": "^26.6.3",
+    "standard": "^14.3.4"
   }
 }
