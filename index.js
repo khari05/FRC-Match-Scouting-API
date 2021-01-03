@@ -184,7 +184,7 @@ app.get('/team/:teamNumber/:eventKey', (req, res) => {
     .connect()
     .then(async client => {
       try {
-        const team = await client.query('SELECT * FROM team_event INNER JOIN event ON team_event.eventid = event.id INNER JOIN team ON team.id = team_event.team_number WHERE event.blue_alliance_id = $1 AND team_event.team_number = $2', [eventKey, teamNumber])
+        const team = await client.query('SELECT team.name as team_name, team_event.* FROM team_event INNER JOIN event ON team_event.eventid = event.id INNER JOIN team ON team.id = team_event.team_number WHERE event.blue_alliance_id = $1 AND team_event.team_number = $2', [eventKey, teamNumber])
         res.status(200).json(team.rows[0])
       } finally {
         client.release()

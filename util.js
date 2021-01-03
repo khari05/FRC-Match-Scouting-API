@@ -18,24 +18,18 @@ const convertMatches = (matches, eventId) => {
 }
 
 const convertTeams = (teams) => {
-  const teamList = []
-  for (const i in teams) {
-    teamList.push([
-      parseInt(teams[i].team_number),
-      teams[i].nickname.substring(0, 24)
-    ])
-  }
+  const teamList = teams.map((a) => [
+    parseInt(a.team_number),
+    a.nickname.substring(0, 24)
+  ])
   return teamList
 }
 
 const convertTeamEvents = (teams, eventId) => {
-  const teamList = []
-  for (const i in teams) {
-    teamList.push([
-      eventId,
-      parseInt(teams[i].team_number)
-    ])
-  }
+  const teamList = teams.map((a) => [
+    eventId,
+    parseInt(a.team_number)
+  ])
   return teamList
 }
 

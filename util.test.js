@@ -1,5 +1,5 @@
 /* global test, expect */
-const { convertMatches, findAverage, convertTeams } = require('./util')
+const { convertMatches, findAverage, convertTeams, convertTeamEvents } = require('./util')
 
 test('should output red team number and blue team number in the right order', () => {
   const testMatchList = [{
@@ -51,10 +51,17 @@ test('should convert team json to list', () => {
     { team_number: 1111, nickname: 'this long name is going to be cut off by the substring' },
     { team_number: 9999, nickname: 'this is a short name' }
   ]
-  const teamList = convertTeams(testJson, 'thisisanevent')
+
+  const teamList = convertTeams(testJson)
   expect(teamList).toStrictEqual([
-    ['thisisanevent', 1111, 'this long name is going '],
-    ['thisisanevent', 9999, 'this is a short name']
+    [1111, 'this long name is going '],
+    [9999, 'this is a short name']
+  ])
+
+  const teamEventList = convertTeamEvents(testJson, 34)
+  expect(teamEventList).toStrictEqual([
+    [34, 1111],
+    [34, 9999]
   ])
 })
 
