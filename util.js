@@ -17,13 +17,23 @@ const convertMatches = (matches, eventId) => {
   return matchList
 }
 
-const convertTeams = (teams, eventId) => {
+const convertTeams = (teams) => {
+  const teamList = []
+  for (const i in teams) {
+    teamList.push([
+      parseInt(teams[i].team_number),
+      teams[i].nickname.substring(0, 24)
+    ])
+  }
+  return teamList
+}
+
+const convertTeamEvents = (teams, eventId) => {
   const teamList = []
   for (const i in teams) {
     teamList.push([
       eventId,
-      parseInt(teams[i].team_number),
-      teams[i].nickname.substring(0, 24)
+      parseInt(teams[i].team_number)
     ])
   }
   return teamList
@@ -88,6 +98,10 @@ const calculateElo = (teams, matchResults) => {
   return finalTeamList
 }
 
+// const calculateOpr = (teams, matchResults) => {
+// TODO: Calculate OPR or query it from someone
+// }
+
 const updateTeams = (teams, stats) => {
   const allTeamData = []
   for (const i in teams.rows) {
@@ -141,7 +155,7 @@ const updateTeams = (teams, stats) => {
     const avgInner = findAverage(innerScored)
     const avgTotal = findAverage(totalScored)
     const avgAttempted = findAverage(totalAttempted)
-    const avgHang = findAverage(hanging)
+    const avgHang = findAverage(hanging) * 100
     const avgPen = findAverage(penalties)
 
     allTeamData.push({
@@ -174,4 +188,4 @@ const findAverage = (arr) => {
   return (arr.length !== 0) ? arr.reduce((a, b) => a + b.data, 0) / arr.length : 0
 }
 
-module.exports = { convertMatches, convertTeams, updateTeams, findAverage, calculateElo }
+module.exports = { convertMatches, convertTeams, convertTeamEvents, updateTeams, findAverage, calculateElo }
