@@ -99,7 +99,7 @@ app.get('/matches/:eventid', (req, response) => {
     .connect()
     .then(async client => {
       try {
-        const result = await client.query('SELECT match.* FROM match INNER JOIN event ON match.eventid = event.id WHERE event.blue_alliance_id = $1', [eventid])
+        const result = await client.query('SELECT match.*, b1.name AS blue_name_1, b2.name AS blue_name_2, b3.name AS blue_name_3, r1.name AS red_name_1, r2.name AS red_name_2, r3.name AS red_name_3 FROM match JOIN event ON match.eventid = event.id JOIN team b1 ON b1.id = match.blue1 JOIN team b2 ON b2.id = match.blue2 JOIN team b3 ON b3.id = match.blue3 JOIN team r1 ON r1.id = match.red1 JOIN team r2 ON r2.id = match.red2 JOIN team r3 ON r3.id = match.red3 WHERE event.blue_alliance_id = $1', [eventid])
         response.status(200).json(result.rows.sort((a, b) => a.match_number - b.match_number))
       } finally {
         client.release()
