@@ -5,6 +5,8 @@
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](https://github.com/standard/standard)
 [![Deploy](https://img.shields.io/badge/%E2%86%91_Deploy_to-Heroku-7056bf.svg)](https://heroku.com/deploy?template=https://github.com/khari05/FRC-Match-Scouting-API)
 
+**I no longer have freshman levels of time to update this.** This will remain a relic of FRC past and what could've been. RIP Infinite Recharge. The idea behind the program should still work for future years.
+
 This is the backend server for [my scouting app](https://github.com/khari05/FRC-Match-Scouting-App).
 I plan to make a public API for others to query ELO and OPR from my server.
 
